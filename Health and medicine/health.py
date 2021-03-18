@@ -12,14 +12,14 @@ dic = {
         'course_qualification':[],
         'intakes' : []
     }
-df = pd.DataFrame(dic)
+df2 = pd.DataFrame(dic)
+browser = mechanicalsoup.StatefulBrowser()
 
 count = 0
 for url in urls:
     count+=1
     dic2 = {}
     dic2['course_link'] = url
-    browser = mechanicalsoup.StatefulBrowser()
     try:
         browser.open(url)
         soup = browser.page
@@ -51,8 +51,8 @@ for url in urls:
         except:
             dic2['course_qualification'] = None
         print(count)
-        df = df.append(dic2, ignore_index=True)
+        df2 = df2.append(dic2, ignore_index=True)
     except:
         continue
     
-df.to_csv("inner_info.csv")
+df2.to_csv("inner_info.csv")
