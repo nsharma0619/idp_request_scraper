@@ -1,52 +1,58 @@
 import mechanicalsoup
 import pandas as pd
 import concurrent.futures
-dic = {'area of study':[],
-       'course_name':[],
-       'university_name':[],
-       'course_fee':[],
-       'course_link':[],
-      }
-df = pd.DataFrame(dic)
 
+df = pd.read_csv('link_info.csv')
+urls = df['course_link']
+dic = {
+        'location':[],
+        'course_link':[],
+        'duration':[],
+        'entry_score':[],
+        'course_qualification':[],
+        'intakes' : []
+    }
+df2 = pd.DataFrame(dic)
 browser = mechanicalsoup.StatefulBrowser()
-browser.open("https://www.idp.com/global/search/health-and-medicine/")
-count=0
-while True:
+
+count = 0
+for url in urls:
     count+=1
-    print(count)
-    soup = browser.page
-    cards = soup.find('ul', class_='product__listing product__list').find_all('li')
-    for card in cards:
-        dic = {}
-        prd_inner_cont = card.find('div', class_='prd_inner_cont')
-        right_content = card.find('div', class_='right-content')
-        dic['area of study'] = 'health-and-medicine'
+    dic2 = {}
+    dic2['course_link'] = url
+    try:
+        browser.open(url)
+        soup = browser.page
+        header = soup.find('div', class_='institution_count')
         try:
-            dic['course_name'] = prd_inner_cont.find('h2').find('a').text.strip('\n')
+            table = soup.find('table', class_='table desktop price-table table-responsive')
+            table = [i.text for i in table.find_all('td')]
+            str1 = ''.join(table)
+            str1 = str1.replace(',', '')
+            months_master = ('january','feb','march','april','may','june','july','august','september','october','november','december')
+            dic2['intakes'] = [i for i in months_master if i in str1.casefold()]
         except:
             pass
+
         try:
-            dic['university_name'] = prd_inner_cont.find('h3').find('a').find('span', class_='uniname').text
+            dic2['location'] = header.find(text='Location').findNext('p').text
         except:
-            pass
+            dic2['location'] = None
         try:
-            score = right_content.find("div", class_="score")
-            try:
-                dic['course_fee'] = score.find_all("p")[1].text.replace('\xa0\n', ' ').split('?')[0].strip('\n')
-            except:
-                pass
-            try:
-                dic['course_link'] = 'https://www.idp.com' + prd_inner_cont.find('h2').find('a')['href']
-            except:
-                pass
+            dic2['duration'] = header.find(text='Duration').findNext('p').text.replace('\xa0',' ')
         except:
-            pass
-        df = df.append(dic, ignore_index=True)
-    next_page = soup.find('a', {'rel':'next'})
-    if next_page:
-        next_page_url = 'https://www.idp.com' + next_page['href']
-        browser.open(next_page_url)
+            dic2['duration'] = None
+        try:
+            dic2['entry_score'] = header.find(text='Entry score').findNext('p').text    
+        except:
+            dic2['entry_score'] = None
+        try:
+            dic2['course_qualification'] = header.find(text='Qualification').findNext('p').text
+        except:
+            dic2['course_qualification'] = None
+        print(count)
+        df2 = df2.append(dic2, ignore_index=True)
+    except:
         continue
-    break
-df.to_csv("link_info.csv")
+    
+df2.to_csv("inner_info.csv")
